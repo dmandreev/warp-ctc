@@ -2,6 +2,7 @@
 #include <iostream>
 #include <algorithm>
 
+
 #include <ctc.h>
 
 #include "detail/cpu_ctc.h"

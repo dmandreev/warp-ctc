@@ -6,14 +6,40 @@ ENDIF()
 
 project(ctc_release)
 
+
+if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /bigobj")
+	IF(CMAKE_BUILD_TYPE MATCHES DEBUG)
+    		message("Debug mode")
+		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MDd")
+	ELSEIF(CMAKE_BUILD_TYPE MATCHES RELEASE)
+    		message("Release mode")
+    		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MD")
+	endif()
+
+	foreach(flag_var
+        	CMAKE_CXX_FLAGS CMAKE_CXX_FLAGS_DEBUG CMAKE_CXX_FLAGS_RELEASE
+        	CMAKE_CXX_FLAGS_MINSIZEREL CMAKE_CXX_FLAGS_RELWITHDEBINFO)
+    		STRING (REGEX REPLACE "/RTC[^ ]*" "" ${flag_var} "${${flag_var}}")
+	endforeach(flag_var)
+endif()
+
+
+
+
 IF (NOT APPLE)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp -O2")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /openmp /O2")
 ENDIF()
 
 IF (APPLE)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -O2")
     add_definitions(-DAPPLE)
 ENDIF()
+
+IF (MSVC)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /openmp -O2")
+ENDIF()
+
 
 include_directories(include)
 
@@ -40,9 +66,13 @@ IF (CUDA_VERSION GREATER 7.6)
     set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -gencode arch=compute_62,code=sm_62")
 ENDIF()
 
-if (NOT APPLE)
+if (NOT APPLE AND NOT MSVC)
     set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} --std=c++11")
-    set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -Xcompiler -fopenmp")
+    set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -Xcompiler /openmp")
+ENDIF()
+
+if (MSVC)
+    set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS}  -Xcompiler /openmp")
 ENDIF()
 
 FIND_PACKAGE(Torch)
@@ -68,9 +98,9 @@ ENDIF()
 
 IF (WITH_GPU)
 
-    MESSAGE(STATUS "Building shared library with GPU support")
+    MESSAGE(STATUS "Building static library with GPU support")
 
-    CUDA_ADD_LIBRARY(warpctc SHARED src/ctc_entrypoint.cu src/reduce.cu)
+    CUDA_ADD_LIBRARY(warpctc  src/ctc_entrypoint.cu src/reduce.cu)
     IF (!Torch_FOUND) 
         TARGET_LINK_LIBRARIES(warpctc ${CUDA_curand_LIBRARY})
     ENDIF()
@@ -116,11 +146,11 @@ IF (WITH_GPU)
 ELSE()
     MESSAGE(STATUS "Building shared library with no GPU support")
 
-    if (NOT APPLE)
+    if (NOT APPLE AND NOT MSVC)
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -O2")
     ENDIF()
 
-    ADD_LIBRARY(warpctc SHARED src/ctc_entrypoint.cpp)
+    ADD_LIBRARY(warpctc src/ctc_entrypoint.cpp)
 
     add_executable(test_cpu tests/test_cpu.cpp )
     TARGET_LINK_LIBRARIES(test_cpu warpctc)

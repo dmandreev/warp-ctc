@@ -3,6 +3,8 @@
 #include <stdexcept>
 #include <vector>
 #include <random>
+#include <algorithm>
+#include <numeric>
 
 #include <ctc.h>
 

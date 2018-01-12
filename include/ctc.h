@@ -5,6 +5,12 @@
 
 #pragma once
 
+#if defined(warpctc_EXPORTS)
+#define  warpctc_EXPORT __declspec(dllexport)
+#else
+#define  warpctc_EXPORT __declspec(dllimport)
+#endif
+
 
 
 #ifdef __cplusplus
@@ -24,13 +30,13 @@ typedef enum {
 } ctcStatus_t;
 
 /** Returns a single integer which specifies the API version of the warpctc library */
-int get_warpctc_version();
+warpctc_EXPORT int get_warpctc_version();
 
 /** Returns a string containing a description of status that was passed in
  *  \param[in] status identifies which string should be returned
  *  \return C style string containing the text description
  *  */
-const char* ctcGetStatusString(ctcStatus_t status);
+warpctc_EXPORT const char* ctcGetStatusString(ctcStatus_t status);
 
 typedef enum {
     CTC_CPU = 0,
@@ -93,7 +99,7 @@ struct ctcOptions {
  *  \return Status information
  *
  * */
-ctcStatus_t compute_ctc_loss(const float* const activations,
+warpctc_EXPORT ctcStatus_t compute_ctc_loss(const float* const activations,
                              float* gradients,
                              const int* const flat_labels,
                              const int* const label_lengths,
@@ -122,7 +128,7 @@ ctcStatus_t compute_ctc_loss(const float* const activations,
  *
  *  \return Status information
  **/
-ctcStatus_t get_workspace_size(const int* const label_lengths,
+warpctc_EXPORT ctcStatus_t get_workspace_size(const int* const label_lengths,
                                const int* const input_lengths,
                                int alphabet_size, int minibatch,
                                ctcOptions info,

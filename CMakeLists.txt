@@ -12,9 +12,11 @@ if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
 	IF(CMAKE_BUILD_TYPE MATCHES DEBUG)
     		message("Debug mode")
 		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MDd")
+		set(NVCC_RUNIME_FLAG "-Xcompiler /MDd")
 	ELSEIF(CMAKE_BUILD_TYPE MATCHES RELEASE)
     		message("Release mode")
     		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MD")
+		set(NVCC_RUNIME_FLAG "-Xcompiler /MD")
 	endif()
 
 	foreach(flag_var
@@ -27,8 +29,8 @@ endif()
 
 
 
-IF (NOT APPLE)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /openmp /O2")
+IF (NOT APPLE AND NOT MSVC)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp -O2")
 ENDIF()
 
 IF (APPLE)
@@ -72,7 +74,7 @@ if (NOT APPLE AND NOT MSVC)
 ENDIF()
 
 if (MSVC)
-    set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS}  -Xcompiler /openmp")
+    set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS}  -Xcompiler /openmp ${NVCC_RUNIME_FLAG}")
 ENDIF()
 
 FIND_PACKAGE(Torch)
@@ -100,14 +102,14 @@ IF (WITH_GPU)
 
     MESSAGE(STATUS "Building static library with GPU support")
 
-    CUDA_ADD_LIBRARY(warpctc  src/ctc_entrypoint.cu src/reduce.cu)
+    CUDA_ADD_LIBRARY(warpctc  SHARED src/ctc_entrypoint.cu src/reduce.cu)
     IF (!Torch_FOUND) 
         TARGET_LINK_LIBRARIES(warpctc ${CUDA_curand_LIBRARY})
     ENDIF()
 
     add_executable(test_cpu tests/test_cpu.cpp )
     TARGET_LINK_LIBRARIES(test_cpu warpctc)
-    SET_TARGET_PROPERTIES(test_cpu PROPERTIES COMPILE_FLAGS "${CMAKE_CXX_FLAGS} --std=c++11")
+    SET_TARGET_PROPERTIES(test_cpu PROPERTIES COMPILE_FLAGS "${CMAKE_CXX_FLAGS}")
 
     cuda_add_executable(test_gpu tests/test_gpu.cu)
     TARGET_LINK_LIBRARIES(test_gpu warpctc ${CUDA_curand_LIBRARY})
@@ -150,11 +152,11 @@ ELSE()
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -O2")
     ENDIF()
 
-    ADD_LIBRARY(warpctc src/ctc_entrypoint.cpp)
+    ADD_LIBRARY(warpctc SHARED src/ctc_entrypoint.cpp)
 
     add_executable(test_cpu tests/test_cpu.cpp )
     TARGET_LINK_LIBRARIES(test_cpu warpctc)
-    SET_TARGET_PROPERTIES(test_cpu PROPERTIES COMPILE_FLAGS "${CMAKE_CXX_FLAGS} --std=c++11")
+    SET_TARGET_PROPERTIES(test_cpu PROPERTIES COMPILE_FLAGS "${CMAKE_CXX_FLAGS}")
 
     INSTALL(TARGETS warpctc
             RUNTIME DESTINATION "bin"
